@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "GraphQL Subscriptions Monitor",
+  "version": "1.0",
+  "description": "Monitor GraphQL subscriptions in real-time",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

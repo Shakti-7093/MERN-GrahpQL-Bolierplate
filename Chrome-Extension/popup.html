@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GraphQL Subscriptions</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 16px;
+      font-family: Arial, sans-serif;
+    }
+    .status {
+      padding: 8px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+    .connected { background-color: #d4edda; color: #155724; }
+    .disconnected { background-color: #f8d7da; color: #721c24; }
+    .reconnecting { background-color: #fff3cd; color: #856404; }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .data-section {
+      margin-top: 16px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+    .error-message {
+      color: #721c24;
+      background-color: #f8d7da;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="status" class="status">Connecting...</div>
+  <div id="error" class="error-message" style="display: none;"></div>
+  
+  <div class="data-section">
+    <h3>Latest Todo</h3>
+    <div id="todo"></div>
+  </div>
+  
+  <div class="data-section">
+    <h3>Latest User</h3>
+    <div id="user"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html> 
