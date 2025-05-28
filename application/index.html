@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GraphQL Subscription Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .connection-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Sidebar Layout */
+        .app-layout {
+            display: flex;
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-nav li {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar-nav li:hover {
+            background-color: #34495e;
+        }
+        .sidebar-nav li.active {
+            background-color: #3498db;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background: #fff;
+            border-radius: 0 8px 8px 0;
+            overflow-y: auto;
+        }
+        .subscription-container {
+            display: none;
+            height: 100%;
+        }
+        .subscription-container.active {
+            display: block;
+            height: 100%;
+        }
+        .subscription-box {
+            height: 300px;
+            overflow: hidden;
+            margin-bottom: 0;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: none;
+        }
+        .subscription-box pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-y: auto;
+            height: 100%;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GraphQL Subscription Client</h1>
+        
+        <div class="connection-controls">
+            <div class="input-group">
+                <input type="text" id="wsUrl" placeholder="Enter WebSocket URL (e.g., ws://localhost:4000/graphql-subscriptions)" value="ws://localhost:4000/graphql-subscriptions">
+                <button id="connectBtn">Connect</button>
+                <button id="disconnectBtn" disabled>Disconnect</button>
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+            <div id="connectionStatus" class="status disconnected">Disconnected</div>
+        </div>
+        
+        <div class="app-layout" id="appLayout" style="display: none;">
+            <div class="sidebar">
+                <ul class="sidebar-nav">
+                    <li class="active" data-target="todoContainer">Todos</li>
+                    <li data-target="userContainer">Users</li>
+                </ul>
+            </div>
+            <div class="main-content">
+                <div id="todoContainer" class="subscription-container active">
+                    <h2>New Todo Subscription</h2>
+                    <div class="subscription-box">
+                        <pre id="todoData">Waiting for data...</pre>
+                    </div>
+                </div>
+                <div id="userContainer" class="subscription-container">
+                    <h2>New User Subscription</h2>
+                    <div class="subscription-box">
+                        <pre id="userData">Waiting for data...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        const wsUrlInput = document.getElementById('wsUrl');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Store all received events
+        const todoEvents = [];
+        const userEvents = [];
+
+        // Load saved URL from localStorage
+        const savedUrl = localStorage.getItem('wsUrl');
+        if (savedUrl) {
+            wsUrlInput.value = savedUrl;
+        }
+
+        // Save URL to localStorage when changed
+        wsUrlInput.addEventListener('change', () => {
+            localStorage.setItem('wsUrl', wsUrlInput.value);
+        });
+
+        connectBtn.addEventListener('click', () => {
+            const url = wsUrlInput.value.trim();
+            if (!url) {
+                showError('Please enter a WebSocket URL');
+                return;
+            }
+            ipcRenderer.send('connect-ws', url);
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            ipcRenderer.send('disconnect-ws');
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const appLayout = document.getElementById('appLayout');
+            statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
+            statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+            
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            wsUrlInput.disabled = connected;
+
+            // Show/hide the app layout based on connection status
+            appLayout.style.display = connected ? 'flex' : 'none';
+        }
+
+        ipcRenderer.on('subscription-data', (event, { name, data }) => {
+            if (name === 'NEW_TODO') {
+                todoEvents.push(data);
+                document.getElementById('todoData').textContent = todoEvents.map(
+                    (d, i) => `[${i+1}]: ` + JSON.stringify(d, null, 2)
+                ).join('\n\n');
+            } else if (name === 'NEW_USER') {
+                userEvents.push(data);
+                document.getElementById('userData').textContent = userEvents.map(
+                    (d, i) => `[${i+1}]: ` + JSON.stringify(d, null, 2)
+                ).join('\n\n');
+            }
+        });
+
+        ipcRenderer.on('connection-status', (event, { connected, error }) => {
+            updateConnectionStatus(connected);
+            if (!connected) {
+                todoEvents.length = 0;
+                userEvents.length = 0;
+                document.getElementById('todoData').textContent = 'Waiting for data...';
+                document.getElementById('userData').textContent = 'Waiting for data...';
+            }
+            if (error) {
+                showError(error);
+            }
+        });
+
+        // Initial status
+        updateConnectionStatus(false);
+
+        // Sidebar navigation logic
+        function setupSidebarNavigation() {
+            document.querySelectorAll('.sidebar-nav li').forEach(item => {
+                item.addEventListener('click', () => {
+                    // Update active state in sidebar
+                    document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Show corresponding container
+                    const targetId = item.getAttribute('data-target');
+                    document.querySelectorAll('.subscription-container').forEach(container => {
+                        container.classList.remove('active');
+                    });
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+        }
+        setupSidebarNavigation();
+    </script>
+</body>
+</html> 
