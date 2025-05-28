@@ -42,9 +42,11 @@ async function startServer() {
     });
 
     // Start listening
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`[Server] Running on port ${PORT}`);
-      console.log(`[WebSocket] Server available at ws://localhost:${PORT}${WS_PATH}`);
+      console.log(`[WebSocket] Server available at ws://0.0.0.0:${PORT}${WS_PATH}`);
+      console.log(`[WebSocket] Local access: ws://localhost:${PORT}${WS_PATH}`);
+      console.log(`[WebSocket] Network access: ws://<your-ip>:${PORT}${WS_PATH}`);
     });
   } catch (error) {
     console.error("[Server] Startup error:", error);

@@ -14,7 +14,7 @@
     "build": "electron-builder",
     "build:win": "electron-builder --win portable",
     "build:win:nsis": "electron-builder --win nsis",
-    "build:mac": "electron-builder --mac",
+    "build:mac": "electron-builder --mac zip",
     "build:linux": "electron-builder --linux"
   },
   "license": "ISC",
@@ -66,9 +66,14 @@
     },
     "mac": {
       "target": [
-        "dmg"
+        "zip"
       ],
-      "icon": "build/icons/icon.icns"
+      "icon": "build/icons/icon.png",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "entitlements": null,
+      "entitlementsInherit": null
     },
     "files": [
       "**/*",

@@ -8,14 +8,21 @@ const Subscription = new GraphQLObjectType({
   fields: () => ({
     newUser: {
       type: UserType,
-      subscribe: () => {
-        const asyncIterator = createAsyncIterator("NEW_USER");
+      subscribe: (_, __, context) => {
+        const clientId =
+          context?.extra?.socket?.clientId || `anonymous_${Date.now()}`;
+        console.log(
+          `[GraphQL] Creating NEW_USER subscription for client ${clientId}`
+        );
+        const asyncIterator = createAsyncIterator("NEW_USER", clientId);
         return {
           [Symbol.asyncIterator]: () => asyncIterator,
           return: () => {
-            console.log("[GraphQL] Cleaning up NEW_USER subscription");
+            console.log(
+              `[GraphQL] Cleaning up NEW_USER subscription for client ${clientId}`
+            );
             return asyncIterator.return();
-          }
+          },
         };
       },
       resolve: (payload) => {
@@ -25,14 +32,21 @@ const Subscription = new GraphQLObjectType({
     },
     newTodo: {
       type: TodoType,
-      subscribe: () => {
-        const asyncIterator = createAsyncIterator("NEW_TODO");
+      subscribe: (_, __, context) => {
+        const clientId =
+          context?.extra?.socket?.clientId || `anonymous_${Date.now()}`;
+        console.log(
+          `[GraphQL] Creating NEW_TODO subscription for client ${clientId}`
+        );
+        const asyncIterator = createAsyncIterator("NEW_TODO", clientId);
         return {
           [Symbol.asyncIterator]: () => asyncIterator,
           return: () => {
-            console.log("[GraphQL] Cleaning up NEW_TODO subscription");
+            console.log(
+              `[GraphQL] Cleaning up NEW_TODO subscription for client ${clientId}`
+            );
             return asyncIterator.return();
-          }
+          },
         };
       },
       resolve: (payload) => {

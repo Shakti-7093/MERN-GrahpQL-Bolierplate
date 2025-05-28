@@ -2,16 +2,23 @@ import { EventEmitter } from "events";
 
 const pubsub = new EventEmitter();
 const activeSubscriptions = new Map();
-const processedEvents = new Set();
+const clientProcessedEvents = new Map(); // Track processed events per client
 
-function createAsyncIterator(eventName) {
+function createAsyncIterator(eventName, clientId) {
   const pullQueue = [];
   const pushQueue = [];
-  const subscriptionId = `${eventName}_${Date.now()}_${Math.random()}`;
+  const subscriptionId = `${eventName}_${clientId}_${Date.now()}_${Math.random()}`;
 
-  // Check if this subscription already exists
+  // Initialize client's processed events set if it doesn't exist
+  if (!clientProcessedEvents.has(clientId)) {
+    clientProcessedEvents.set(clientId, new Set());
+  }
+
+  // Check if this subscription already exists for this client
   if (activeSubscriptions.has(subscriptionId)) {
-    console.log(`[PubSub] Subscription ${subscriptionId} already exists, cleaning up old one`);
+    console.log(
+      `[PubSub] Subscription ${subscriptionId} already exists for client ${clientId}, cleaning up old one`
+    );
     const oldSub = activeSubscriptions.get(subscriptionId);
     pubsub.off(eventName, oldSub.listener);
     activeSubscriptions.delete(subscriptionId);
@@ -20,22 +27,28 @@ function createAsyncIterator(eventName) {
   const listener = (data) => {
     // Create a unique event ID
     const eventId = `${eventName}_${JSON.stringify(data)}`;
-    
-    // Check if we've already processed this event
-    if (processedEvents.has(eventId)) {
-      console.log(`[PubSub] Skipping duplicate event ${eventId}`);
+    const clientProcessed = clientProcessedEvents.get(clientId);
+
+    // Check if this client has already processed this event
+    if (clientProcessed.has(eventId)) {
+      console.log(
+        `[PubSub] Client ${clientId} already processed event ${eventId}`
+      );
       return;
     }
-    
-    console.log(`[PubSub] Event '${eventName}' received for subscription ${subscriptionId}:`, data);
-    
-    // Mark this event as processed
-    processedEvents.add(eventId);
-    
-    // Clean up old events (keep only last 100)
-    if (processedEvents.size > 100) {
-      const oldestEvent = Array.from(processedEvents)[0];
-      processedEvents.delete(oldestEvent);
+
+    console.log(
+      `[PubSub] Event '${eventName}' received for client ${clientId} subscription ${subscriptionId}:`,
+      data
+    );
+
+    // Mark this event as processed for this client
+    clientProcessed.add(eventId);
+
+    // Clean up old events for this client (keep only last 100)
+    if (clientProcessed.size > 100) {
+      const oldestEvent = Array.from(clientProcessed)[0];
+      clientProcessed.delete(oldestEvent);
     }
 
     if (pullQueue.length !== 0) {
@@ -46,9 +59,11 @@ function createAsyncIterator(eventName) {
     }
   };
 
-  console.log(`[PubSub] Adding listener for event: ${eventName} with subscription ID: ${subscriptionId}`);
+  console.log(
+    `[PubSub] Adding listener for event: ${eventName} with subscription ID: ${subscriptionId} for client ${clientId}`
+  );
   pubsub.on(eventName, listener);
-  activeSubscriptions.set(subscriptionId, { eventName, listener });
+  activeSubscriptions.set(subscriptionId, { eventName, listener, clientId });
 
   return {
     next() {
@@ -60,13 +75,18 @@ function createAsyncIterator(eventName) {
       });
     },
     return() {
-      console.log(`[PubSub] Cleaning up subscription ${subscriptionId}`);
+      console.log(
+        `[PubSub] Cleaning up subscription ${subscriptionId} for client ${clientId}`
+      );
       pubsub.off(eventName, listener);
       activeSubscriptions.delete(subscriptionId);
       return Promise.resolve({ value: undefined, done: true });
     },
     throw(error) {
-      console.error(`[PubSub] Error in subscription ${subscriptionId}:`, error);
+      console.error(
+        `[PubSub] Error in subscription ${subscriptionId} for client ${clientId}:`,
+        error
+      );
       pubsub.off(eventName, listener);
       activeSubscriptions.delete(subscriptionId);
       return Promise.reject(error);
@@ -79,26 +99,53 @@ function createAsyncIterator(eventName) {
 
 function publish(eventName, data) {
   const activeCount = getActiveSubscriptionCount(eventName);
-  console.log(`[PubSub] Publishing event '${eventName}' to ${activeCount} active subscriptions`);
+  console.log(
+    `[PubSub] Publishing event '${eventName}' to ${activeCount} active subscriptions`
+  );
   if (activeCount > 0) {
     pubsub.emit(eventName, data);
   } else {
-    console.log(`[PubSub] No active subscriptions for event '${eventName}', skipping publish`);
+    console.log(
+      `[PubSub] No active subscriptions for event '${eventName}', skipping publish`
+    );
   }
 }
 
 function getActiveSubscriptionCount(eventName) {
-  return Array.from(activeSubscriptions.values()).filter(sub => sub.eventName === eventName).length;
+  return Array.from(activeSubscriptions.values()).filter(
+    (sub) => sub.eventName === eventName
+  ).length;
+}
+
+function cleanupClientSubscriptions(clientId) {
+  console.log(`[PubSub] Cleaning up all subscriptions for client ${clientId}`);
+  activeSubscriptions.forEach((sub, id) => {
+    if (sub.clientId === clientId) {
+      console.log(
+        `[PubSub] Cleaning up subscription ${id} for client ${clientId}`
+      );
+      pubsub.off(sub.eventName, sub.listener);
+      activeSubscriptions.delete(id);
+    }
+  });
+  clientProcessedEvents.delete(clientId);
 }
 
 function cleanupAllSubscriptions() {
-  console.log('[PubSub] Cleaning up all subscriptions');
+  console.log("[PubSub] Cleaning up all subscriptions");
   activeSubscriptions.forEach((sub, id) => {
     console.log(`[PubSub] Cleaning up subscription ${id}`);
     pubsub.off(sub.eventName, sub.listener);
   });
   activeSubscriptions.clear();
-  processedEvents.clear();
+  clientProcessedEvents.clear();
 }
 
-export { pubsub, createAsyncIterator, publish, getActiveSubscriptionCount, cleanupAllSubscriptions };
+export {
+  pubsub,
+  createAsyncIterator,
+  publish,
+  getActiveSubscriptionCount,
+  cleanupClientSubscriptions,
+  cleanupAllSubscriptions,
+};
