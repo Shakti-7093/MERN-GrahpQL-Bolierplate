@@ -12,7 +12,8 @@
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
     "build": "electron-builder",
-    "build:win": "electron-builder --win",
+    "build:win": "electron-builder --win portable",
+    "build:win:nsis": "electron-builder --win nsis",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
   },
@@ -55,7 +56,13 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icons/icon.ico"
+      "icon": "build/icons/icon.ico",
+      "signingHashAlgorithms": null,
+      "signAndEditExecutable": false,
+      "certificateFile": null,
+      "certificatePassword": null,
+      "verifyUpdateCodeSignature": false,
+      "forceCodeSigning": false
     },
     "mac": {
       "target": [
