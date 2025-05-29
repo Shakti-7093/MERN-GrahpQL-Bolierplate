@@ -1,4 +1,9 @@
-import { GraphQLObjectType, GraphQLID, GraphQLString, GraphQLBoolean } from "graphql";
+import {
+  GraphQLObjectType,
+  GraphQLID,
+  GraphQLString,
+  GraphQLBoolean,
+} from "graphql";
 
 const TodoType = new GraphQLObjectType({
   name: "Todo",

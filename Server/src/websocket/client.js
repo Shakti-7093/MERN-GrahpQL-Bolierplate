@@ -1,14 +1,18 @@
-import { createClient } from 'graphql-ws';
-import WebSocket from 'ws';
+import { createClient } from "graphql-ws";
+import WebSocket from "ws";
+import dotenv from "dotenv";
+dotenv.config();
 
 class WebSocketClient {
-  constructor(url = 'ws://localhost:4000/graphql-subscriptions') {
+  constructor(
+    url = `ws://localhost:${process.env.PORT}/graphql-subscriptions`
+  ) {
     this.url = url;
     this.client = null;
     this.isConnected = false;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.reconnectInterval = 3000; // 3 seconds
+    this.reconnectInterval = 3000;
     this.subscriptions = new Map();
   }
 
@@ -17,43 +21,44 @@ class WebSocketClient {
       url: this.url,
       webSocketImpl: WebSocket,
       lazy: false,
-      connectionParams: {
-        // Add any authentication headers or tokens here
-        // authToken: 'your-auth-token'
-      },
+      connectionParams: {},
       retryAttempts: this.maxReconnectAttempts,
       on: {
         connected: () => {
-          console.log('WebSocket connected');
+          console.log("WebSocket connected");
           this.isConnected = true;
           this.reconnectAttempts = 0;
         },
         closed: () => {
-          console.log('WebSocket closed');
+          console.log("WebSocket closed");
           this.isConnected = false;
           this.handleReconnect();
         },
         error: (error) => {
-          console.error('WebSocket error:', error);
+          console.error("WebSocket error:", error);
           this.handleReconnect();
-        }
-      }
+        },
+      },
     });
   }
 
   handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      console.log(
+        `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+      );
       setTimeout(() => this.connect(), this.reconnectInterval);
     } else {
-      console.error('Max reconnection attempts reached');
+      console.error("Max reconnection attempts reached");
     }
   }
 
-  subscribe(query, variables = {}, name = 'subscription') {
+  subscribe(query, variables = {}, name = "subscription") {
     if (!this.client) {
-      throw new Error('WebSocket client not initialized. Call connect() first.');
+      throw new Error(
+        "WebSocket client not initialized. Call connect() first."
+      );
     }
 
     const subscription = this.client.subscribe(
@@ -68,7 +73,7 @@ class WebSocketClient {
         complete: () => {
           console.log(`${name} subscription complete`);
           this.subscriptions.delete(name);
-        }
+        },
       }
     );
 
@@ -86,15 +91,14 @@ class WebSocketClient {
 
   disconnect() {
     if (this.client) {
-      // Unsubscribe from all active subscriptions
       this.subscriptions.forEach((subscription, name) => {
         this.unsubscribe(name);
       });
-      
+
       this.client.dispose();
       this.isConnected = false;
     }
   }
 }
 
-export default WebSocketClient; 
+export default WebSocketClient;

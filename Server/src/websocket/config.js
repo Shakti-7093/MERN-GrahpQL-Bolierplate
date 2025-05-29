@@ -6,9 +6,8 @@ import { cleanupClientSubscriptions } from "../AsyncIterator/pubsub.js";
 
 const WS_PATH = "/graphql-subscriptions";
 
-// Client tracking
 const clients = new Map();
-const availableIds = new Set(); // Track available IDs for reuse
+const availableIds = new Set();
 let maxClientId = 0;
 
 // Error types
@@ -34,13 +33,10 @@ function generateClientId() {
   try {
     let id;
 
-    // First try to use an available ID from the set
     if (availableIds.size > 0) {
-      // Get the smallest available ID
       id = Math.min(...availableIds);
       availableIds.delete(id);
     } else {
-      // If no available IDs, increment the max ID
       id = ++maxClientId;
     }
 
@@ -64,7 +60,6 @@ function removeClient(clientId) {
 
     const client = clients.get(clientId);
     if (client) {
-      // Clean up any subscriptions or resources
       if (client.subscriptions) {
         client.subscriptions.forEach((sub) => {
           try {
@@ -78,7 +73,6 @@ function removeClient(clientId) {
         });
       }
 
-      // Extract the numeric ID and add it to available IDs
       const numericId = parseInt(clientId.split("_")[1]);
       if (!isNaN(numericId)) {
         availableIds.add(numericId);
@@ -97,7 +91,6 @@ function removeClient(clientId) {
     }
   } catch (error) {
     console.error(`[WebSocket] Error removing client ${clientId}:`, error);
-    // Don't throw here, just log the error
   }
 }
 
@@ -130,7 +123,6 @@ export function initializeWebSocketServer(server) {
       perMessageDeflate: false,
     });
 
-    // WebSocket event handlers
     wsServer.on("connection", (ws, req) => {
       let clientId;
       try {
@@ -142,7 +134,6 @@ export function initializeWebSocketServer(server) {
           subscriptions: new Set(),
         });
 
-        // Attach clientId to the WebSocket instance for later use
         ws.clientId = clientId;
 
         console.log(
@@ -179,7 +170,6 @@ export function initializeWebSocketServer(server) {
           handleClientError(clientId, error);
         });
 
-        // Handle ping/pong for connection health
         ws.isAlive = true;
         ws.on("pong", () => {
           ws.isAlive = true;
@@ -196,7 +186,6 @@ export function initializeWebSocketServer(server) {
       }
     });
 
-    // Connection health check
     const interval = setInterval(() => {
       wsServer.clients.forEach((ws) => {
         if (ws.isAlive === false) {
@@ -211,7 +200,6 @@ export function initializeWebSocketServer(server) {
 
     wsServer.on("error", (error) => {
       console.error("[WebSocket] Server error:", error);
-      // Don't throw here, just log the error
     });
 
     wsServer.on("close", () => {
@@ -224,7 +212,6 @@ export function initializeWebSocketServer(server) {
       }
     });
 
-    // GraphQL WebSocket server
     useServer(
       {
         schema,
@@ -256,7 +243,6 @@ export function initializeWebSocketServer(server) {
 
             const { query, variables } = msg.payload;
 
-            // Parse and validate the query
             const document = parse(query);
             console.log(
               `[GraphQL] Parsed document from client ${clientId}:`,
@@ -274,7 +260,6 @@ export function initializeWebSocketServer(server) {
               );
             }
 
-            // Get operation name from the document
             const operation = getOperationAST(document);
             const operationName = operation
               ? operation.name?.value
@@ -284,10 +269,9 @@ export function initializeWebSocketServer(server) {
               operationName
             );
 
-            // Track subscription
             const client = clients.get(clientId);
             if (client) {
-              client.subscriptions.add({ unsubscribe: () => {} }); // Add actual unsubscribe function
+              client.subscriptions.add({ unsubscribe: () => {} });
             }
 
             return {
@@ -329,7 +313,6 @@ export function initializeWebSocketServer(server) {
               `[GraphQL] Subscription completed for client ${clientId}`
             );
 
-            // Clean up subscription
             const client = clients.get(clientId);
             if (client) {
               client.subscriptions.clear();
@@ -377,7 +360,6 @@ export function initializeWebSocketServer(server) {
   }
 }
 
-// Export functions to manage clients
 export function getConnectedClients() {
   try {
     return Array.from(clients.entries()).map(([id, data]) => ({

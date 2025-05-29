@@ -1,7 +1,14 @@
-import { GraphQLObjectType, GraphQLString, GraphQLBoolean, GraphQLID } from "graphql";
+import {
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLBoolean,
+  GraphQLID,
+} from "graphql";
 import UserType from "../types/Users.js";
-import { pubsub, publish, getActiveSubscriptionCount } from "../../AsyncIterator/pubsub.js";
-import TodoType from "../types/Todo.js";
+import {
+  publish,
+  getActiveSubscriptionCount,
+} from "../../AsyncIterator/pubsub.js";
 import { createUser } from "../../controllers/users.controller.js";
 import { createTodo } from "../../controllers/todo.controller.js";
 import CreateTodoResponseType from "./messages/todo.js";
@@ -28,7 +35,9 @@ const MutationType = new GraphQLObjectType({
         const user = await createUser(newUser);
         const activeSubscriptions = getActiveSubscriptionCount("NEW_USER");
         if (activeSubscriptions > 0) {
-          console.log(`[GraphQL] Publishing NEW_USER event to ${activeSubscriptions} subscribers`);
+          console.log(
+            `[GraphQL] Publishing NEW_USER event to ${activeSubscriptions} subscribers`
+          );
           publish("NEW_USER", { newUser: user });
         }
         return user;
@@ -52,7 +61,9 @@ const MutationType = new GraphQLObjectType({
         const todo = await createTodo(newTodo);
         const activeSubscriptions = getActiveSubscriptionCount("NEW_TODO");
         if (activeSubscriptions > 0) {
-          console.log(`[GraphQL] Publishing NEW_TODO event to ${activeSubscriptions} subscribers`);
+          console.log(
+            `[GraphQL] Publishing NEW_TODO event to ${activeSubscriptions} subscribers`
+          );
           publish("NEW_TODO", { newTodo: todo });
         }
         return {

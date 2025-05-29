@@ -2,16 +2,14 @@ import mongoose from "mongoose";
 
 export async function shutdown(wsServer, httpServer, signal) {
   console.log(`\n[Server] ${signal} received. Shutting down gracefully...`);
-  
+
   try {
-    // Close WebSocket server
     if (wsServer) {
       wsServer.close(() => {
         console.log("[WebSocket] Server closed");
       });
     }
 
-    // Close HTTP server
     if (httpServer) {
       await new Promise((resolve) => {
         httpServer.close(resolve);
@@ -19,7 +17,6 @@ export async function shutdown(wsServer, httpServer, signal) {
       console.log("[Server] HTTP server closed");
     }
 
-    // Close MongoDB connection
     await mongoose.connection.close();
     console.log("[MongoDB] Connection closed");
 
@@ -31,7 +28,6 @@ export async function shutdown(wsServer, httpServer, signal) {
 }
 
 export function setupShutdownHandlers(wsServer, httpServer) {
-  // Error handlers
   process.on("uncaughtException", (err) => {
     console.error("[Server] Uncaught Exception:", err);
     shutdown(wsServer, httpServer, "UNCAUGHT_EXCEPTION");
@@ -42,7 +38,6 @@ export function setupShutdownHandlers(wsServer, httpServer) {
     shutdown(wsServer, httpServer, "UNHANDLED_REJECTION");
   });
 
-  // Signal handlers
   process.on("SIGTERM", () => shutdown(wsServer, httpServer, "SIGTERM"));
   process.on("SIGINT", () => shutdown(wsServer, httpServer, "SIGINT"));
-} 
+}

@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
-<head><title>WebSocket Viewer</title></head>
-<body>
-  <h2>WebSocket Client</h2>
-  <input type="text" id="wsUrl" placeholder="ws://example.com/socket">
-  <button onclick="connect()">Connect</button>
-  <button onclick="disconnect()">Disconnect</button>
-  <textarea id="log" rows="20" cols="80" readonly></textarea>
-  <br/>
-  <input type="text" id="message" placeholder="Type a message">
-  <button onclick="sendMessage()">Send</button>
+  <head>
+    <title>WebSocket Viewer</title>
+  </head>
+  <body>
+    <h2>WebSocket Client</h2>
+    <input type="text" id="wsUrl" placeholder="ws://example.com/socket" />
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <textarea id="log" rows="20" cols="80" readonly></textarea>
+    <br />
+    <input type="text" id="message" placeholder="Type a message" />
+    <button onclick="sendMessage()">Send</button>
 
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>

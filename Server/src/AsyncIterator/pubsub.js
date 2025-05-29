@@ -2,19 +2,17 @@ import { EventEmitter } from "events";
 
 const pubsub = new EventEmitter();
 const activeSubscriptions = new Map();
-const clientProcessedEvents = new Map(); // Track processed events per client
+const clientProcessedEvents = new Map();
 
 function createAsyncIterator(eventName, clientId) {
   const pullQueue = [];
   const pushQueue = [];
   const subscriptionId = `${eventName}_${clientId}_${Date.now()}_${Math.random()}`;
 
-  // Initialize client's processed events set if it doesn't exist
   if (!clientProcessedEvents.has(clientId)) {
     clientProcessedEvents.set(clientId, new Set());
   }
 
-  // Check if this subscription already exists for this client
   if (activeSubscriptions.has(subscriptionId)) {
     console.log(
       `[PubSub] Subscription ${subscriptionId} already exists for client ${clientId}, cleaning up old one`
@@ -25,11 +23,9 @@ function createAsyncIterator(eventName, clientId) {
   }
 
   const listener = (data) => {
-    // Create a unique event ID
     const eventId = `${eventName}_${JSON.stringify(data)}`;
     const clientProcessed = clientProcessedEvents.get(clientId);
 
-    // Check if this client has already processed this event
     if (clientProcessed.has(eventId)) {
       console.log(
         `[PubSub] Client ${clientId} already processed event ${eventId}`
@@ -42,10 +38,8 @@ function createAsyncIterator(eventName, clientId) {
       data
     );
 
-    // Mark this event as processed for this client
     clientProcessed.add(eventId);
 
-    // Clean up old events for this client (keep only last 100)
     if (clientProcessed.size > 100) {
       const oldestEvent = Array.from(clientProcessed)[0];
       clientProcessed.delete(oldestEvent);

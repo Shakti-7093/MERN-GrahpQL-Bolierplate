@@ -1,7 +1,7 @@
 let socket;
 
 function connect() {
-  const url = document.getElementById('wsUrl').value;
+  const url = document.getElementById("wsUrl").value;
   socket = new WebSocket(url);
 
   socket.onopen = () => log("✅ Connected");
@@ -17,7 +17,7 @@ function disconnect() {
 }
 
 function sendMessage() {
-  const msg = document.getElementById('message').value;
+  const msg = document.getElementById("message").value;
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(msg);
     log("📤 " + msg);
@@ -25,7 +25,7 @@ function sendMessage() {
 }
 
 function log(message) {
-  const logArea = document.getElementById('log');
+  const logArea = document.getElementById("log");
   logArea.value += message + "\n";
   logArea.scrollTop = logArea.scrollHeight;
 }
